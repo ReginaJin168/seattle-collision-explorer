@@ -12,6 +12,7 @@ const state = {
   selectedId: null,
   basemapLayers: {},
   activeBasemap: null,
+  basemapMode: "dark",
 };
 
 const controls = {
@@ -128,6 +129,13 @@ function setBasemap(mode) {
     state.activeBasemap = nextLayer;
   }
   document.querySelector("#map").classList.toggle("basemap-dark", mode === "dark");
+  state.basemapMode = mode;
+  const workspace = document.querySelector(".map-workspace");
+  workspace.classList.remove("map-style-dark", "map-style-street", "map-style-satellite");
+  workspace.classList.add(`map-style-${mode}`);
+  if (state.pointLayer) {
+    state.pointLayer.eachLayer((point) => point.setStyle(pointStyle(point.collisionRecord, mode)));
+  }
   document.querySelectorAll("[data-basemap]").forEach((button) => {
     const active = button.dataset.basemap === mode;
     button.classList.toggle("active", active);
@@ -151,6 +159,27 @@ function severityColor(severity) {
   if (severity.includes("Injury")) return "#ffe4b3";
   if (severity.includes("Property")) return "#b2f1e8";
   return "#8da5a6";
+}
+
+function pointStyle(record, mode = state.basemapMode) {
+  const serious = record.fatalities > 0 || record.seriousInjuries > 0;
+  const severity = record.severity;
+  let fillColor = severityColor(severity);
+  if (mode === "street") {
+    fillColor = severity.includes("Fatality") || severity.includes("Serious") ? "#d93656"
+      : severity.includes("Injury") ? "#c56a0c"
+        : severity.includes("Property") ? "#008a83" : "#586571";
+  }
+  return {
+    renderer: state.pointRenderer,
+    radius: serious ? 4.8 : 3.2,
+    color: mode === "street" ? "#fffdf5" : "#10252b",
+    weight: mode === "street" ? 1.15 : 0.9,
+    opacity: 1,
+    fillColor,
+    fillOpacity: 0.96,
+    bubblingMouseEvents: false,
+  };
 }
 
 function severityShort(severity) {
@@ -238,17 +267,9 @@ function updateMap() {
   if (!state.pointLayer) return;
   state.pointLayer.clearLayers();
   sampledRecords(geocoded).forEach((record) => {
-    const color = severityColor(record.severity);
-    L.circleMarker([record.lat, record.lon], {
-      renderer: state.pointRenderer,
-      radius: record.fatalities > 0 || record.seriousInjuries > 0 ? 3.7 : 2.15,
-      color,
-      weight: 0.35,
-      opacity: 0.85,
-      fillColor: color,
-      fillOpacity: 0.72,
-      bubblingMouseEvents: false,
-    })
+    const point = L.circleMarker([record.lat, record.lon], pointStyle(record));
+    point.collisionRecord = record;
+    point
       .bindTooltip(`${escapeHtml(severityShort(record.severity))} — ${escapeHtml(record.location)}`)
       .on("click", () => showDetail(record))
       .addTo(state.pointLayer);
@@ -303,15 +324,17 @@ function renderColumnChart(container, series, labelFormatter) {
     container.innerHTML = '<div class="empty-state" style="min-height:220px">No data for this selection.</div>';
     return;
   }
-  const width = 900;
-  const height = 260;
-  const margin = { top: 12, right: 12, bottom: 36, left: 42 };
+  // Match SVG coordinates to its displayed size so labels stay readable in narrow panels.
+  const { width: chartWidth, height: chartHeight } = container.getBoundingClientRect();
+  const width = Math.max(280, Math.round(chartWidth));
+  const height = Math.max(120, Math.round(chartHeight));
+  const margin = { top: 12, right: 8, bottom: 27, left: 34 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
   const max = Math.max(...series.map(([, value]) => value), 1);
   const step = innerWidth / series.length;
   const barWidth = Math.max(2, Math.min(24, step * 0.62));
-  const labelEvery = Math.max(1, Math.ceil(series.length / 8));
+  const labelEvery = Math.max(1, Math.ceil(series.length / Math.max(4, Math.floor(innerWidth / 50))));
   const gridValues = [0, Math.ceil(max / 2), max];
 
   const grid = gridValues.map((value) => {
@@ -324,7 +347,7 @@ function renderColumnChart(container, series, labelFormatter) {
     const x = margin.left + index * step + (step - barWidth) / 2;
     const barHeight = (value / max) * innerHeight;
     const y = margin.top + innerHeight - barHeight;
-    const label = index % labelEvery === 0 || index === series.length - 1
+    const label = index % labelEvery === 0
       ? `<text class="axis-label" x="${x + barWidth / 2}" y="${height - 12}" text-anchor="middle">${escapeHtml(labelFormatter(key))}</text>`
       : "";
     return `<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="3" fill="url(#barGradient)">
@@ -525,6 +548,12 @@ async function init() {
     Object.values(controls).forEach((select) => select.addEventListener("change", filterRecords));
     document.querySelector("#reset-filters").addEventListener("click", resetFilters);
     filterRecords();
+    const chartResizeObserver = new ResizeObserver(() => {
+      renderMonthlyChart();
+      renderHourChart();
+    });
+    chartResizeObserver.observe(document.querySelector("#monthly-chart"));
+    chartResizeObserver.observe(document.querySelector("#hour-chart"));
   } catch (error) {
     console.error(error);
     document.querySelector("#date-range").textContent = "Dashboard unavailable — reload to try again.";
