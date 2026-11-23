@@ -201,7 +201,7 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding: 0 0 
 }
 
 /* Wide-screen analysis board: keep every historical chart in the first view. */
-@media (min-width: 1280px) and (min-height: 820px) {
+@media (min-width: 1280px) and (min-height: 640px) {
   main, footer { width: min(1800px, calc(100% - 32px)); }
   .topbar { min-height: 48px; padding-inline: max(16px, calc((100vw - 1768px) / 2)); }
   .brand { font-size: 12px; }.brand-mark { width: 26px; height: 26px; border-radius: 7px; font-size: 12px; }
@@ -281,7 +281,7 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding: 0 0 
 }
 
 /* Immersive map with transparent analysis panels on desktop. */
-@media (min-width: 1280px) and (min-height: 780px) {
+@media (min-width: 1280px) and (min-height: 640px) {
   body.historical-mode { overflow: hidden; }
   .historical-mode .topbar { position: fixed; z-index: 1000; inset: 0 0 auto; height: 48px; min-height: 48px; background: rgba(18, 28, 30, .72); backdrop-filter: blur(12px); }
   .historical-mode main { width: 100%; margin: 0; }
@@ -369,4 +369,91 @@ footer { display: flex; justify-content: space-between; gap: 20px; padding: 0 0 
   .historical-mode .map-workspace .comparison-row { padding: 6px 0; font-size: 12px; }
   .historical-mode .map-workspace .detail-content dt, .historical-mode .map-workspace .detail-content dd { font-size: 11px; }
   .historical-mode .method-section, .historical-mode footer { display: none; }
+}
+
+/* Question C tab and trained-model labels */
+.model-state.model-ready { color: var(--accent); }
+.view-tab em { font-style: normal; }
+.view-tab .tab-label { font-weight: inherit; }
+.done-pill { color: var(--accent); border-color: rgba(225,245,210,.3); background: rgba(225,245,210,.08); }
+.qc-chart-panel { grid-column: span 8; }
+.qc-side-panel { grid-column: span 4; }
+.chart.qc-chart { height: auto; min-height: 0; }
+.chart.qc-chart svg { width: 100%; height: 300px; min-height: 0; }
+.qc-stats { margin-top: 4px; }
+.qc-stats strong { color: var(--ink); }
+.qc-legend { display: flex; gap: 14px; margin-top: 8px; color: var(--muted); font-size: 10px; }
+.qc-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 2px; vertical-align: -1px; }
+.qc-chart text { fill: var(--muted); font-size: 10px; }
+.qc-chart .value-label { fill: var(--ink); font-size: 10px; font-weight: 700; }
+@media (max-width: 1100px) { .qc-chart-panel, .qc-side-panel { grid-column: span 12; } }
+@media (min-width: 1280px) and (min-height: 640px) {
+  .historical-mode .view-tab span, .historical-mode .view-tab .tab-extra { display: none; }
+}
+
+/* ------------------------------------------------------------------
+   Laptop screens (e.g. MacBook, browser window 640–900 px tall):
+   keep every tab on one screen without scrolling.
+   ------------------------------------------------------------------ */
+@media (min-width: 1280px) and (min-height: 640px) and (max-height: 899px) {
+  /* Explorer: panel heights follow the window height instead of fixed pixels. */
+  .historical-mode .map-workspace > .kpi-grid { height: 60px; }
+  .historical-mode .map-workspace .kpi-card { padding: 7px 11px; }
+  .historical-mode .map-workspace .kpi-card strong { font-size: 20px; margin: 1px 0 0; }
+  .historical-mode .map-workspace .map-toolbar { top: 86px; }
+  .historical-mode .leaflet-control-zoom { margin-top: 128px !important; }
+  .historical-mode .map-workspace > .filter-shell { padding: 11px; }
+  .historical-mode .map-workspace .filters { gap: 6px; margin-top: 9px; }
+  .historical-mode .map-workspace .filters select { height: 27px; }
+  .historical-mode .trend-panel { top: 14px; height: 26%; }
+  .historical-mode .severity-panel { top: calc(26% + 24px); height: 25%; }
+  .historical-mode .weather-panel { top: calc(51% + 34px); bottom: 16px; }
+  .historical-mode .map-workspace .trend-panel .chart,
+  .historical-mode .map-workspace .trend-panel .chart svg { height: calc(26vh - 62px); min-height: 70px; }
+  .historical-mode .map-workspace .bar-list { gap: 3px; margin-top: 6px; }
+  .historical-mode .map-workspace .bar-label, .historical-mode .map-workspace .bar-value { font-size: 11px; }
+  .historical-mode .map-workspace .comparison-row { padding: 3px 0; font-size: 11px; }
+  .historical-mode .hour-panel, .historical-mode .detail-panel { height: 24%; }
+  .historical-mode .map-workspace .hour-panel .chart,
+  .historical-mode .map-workspace .hour-panel .chart svg { height: calc(24vh - 58px); min-height: 70px; }
+  .historical-mode .map-workspace .empty-state { min-height: 0; }
+
+  /* Prediction Lab and Question C */
+  .topbar { min-height: 44px; }
+  .view-tabs { margin: 6px 0 8px; }
+  .model-status-bar { padding: 9px 16px; margin-bottom: 8px; }
+  .model-status-bar h2 { font-size: 15px; }
+  .model-status-bar .section-kicker { margin-bottom: 2px; }
+  .prediction-grid { gap: 8px; }
+  .prediction-grid .panel { padding: 12px 14px; }
+  .prediction-grid .panel-header h2 { font-size: 14px; }
+  .scenario-controls { gap: 6px 10px; }
+  .scenario-controls select { height: 32px; }
+  .model-caveat { margin-top: 8px; font-size: 9px; }
+  .risk-gauge-wrap { min-height: 140px; padding: 2px 0; }
+  .risk-gauge { width: 132px; height: 132px; }
+  .risk-gauge strong { font-size: 26px; }
+  .driver-row { padding: 6px 0; }
+  .driver-empty { min-height: 110px; }
+  .signal-chart { gap: 5px; margin-top: 8px; }
+  .signal-row { font-size: 10px; grid-template-columns: 170px 1fr 38px; }
+  .signal-note { margin-top: 6px; font-size: 9px; }
+  .metric-placeholder-grid { gap: 6px; margin-top: 8px; }
+  .metric-placeholder-grid div { padding: 7px 9px; }
+  .metric-placeholder-grid strong { margin: 2px 0; font-size: 14px; }
+  .model-roadmap { margin-top: 8px; }
+
+  /* Question C: two charts side by side, results underneath. */
+  #questionc-view .qc-chart-panel:nth-of-type(1) { grid-column: 1 / 7; grid-row: 1; }
+  #questionc-view .qc-chart-panel:nth-of-type(3) { grid-column: 7 / 13; grid-row: 1; }
+  #questionc-view .qc-side-panel:nth-of-type(2) { grid-column: 1 / 7; grid-row: 2; }
+  #questionc-view .qc-side-panel:nth-of-type(4) { grid-column: 7 / 13; grid-row: 2; }
+  .chart.qc-chart svg { height: calc(100vh - 470px); min-height: 180px; }
+  .qc-stats { grid-template-columns: repeat(4, 1fr); }
+  .qc-legend { margin-top: 4px; }
+  footer { display: none; }
+}
+@media (min-width: 1280px) and (min-height: 640px) and (max-height: 719px) {
+  .signal-note, .model-roadmap span:last-child { display: none; }
+  .scenario-controls { margin-top: 10px; }
 }

@@ -4,15 +4,22 @@ An interactive product-data-science dashboard for exploring reported Seattle col
 
 ## Current version
 
-- Uses 16,608 public SDOT collision records covering September 2023 through September 2026.
-- Provides linked filters, KPI summaries, an interactive Esri tile map with Leaflet SVG collision vectors, monthly and hourly patterns, severity mix, weather comparison, and record-level detail. The map samples up to 1,600 records from the local dataset for display; summary statistics use all filtered records.
-- Separates historical exploration from a Prediction Lab prototype with scenario inputs, an empirical injury-rate benchmark, context lifts, and univariate feature screening.
-- Preserves missing context fields as `Unknown` rather than dropping them.
-- Treats the dashboard as exploratory analysis; counts are not interpreted as causal effects or exposure-adjusted risk.
+- Uses 16,578 cleaned SDOT collision records (September 2023 – September 2026). Cleaning uses the team's shared `cleaned_data/collision_cleaning.py` (30 rows from another extract removed), fixes swapped latitude/longitude, and joins Open-Meteo hourly weather.
+- **Historical Explorer**: linked filters, KPI summaries, an interactive Esri tile map with Leaflet SVG collision points, monthly and hourly patterns, severity mix, weather comparison and record-level detail. Reports with no recorded time (stored as 00:00, 3,218 records) are kept in counts and on the map but left out of the hourly chart. The map shows up to 1,600 points; statistics use all filtered records.
+- **Prediction Lab**: a logistic regression trained in Python (time period, weather, road condition, collision type, light condition) predicts the probability that a collision involves an injury. It was trained on records before September 2025 and tested on September 2025 – June 2026: ROC AUC 0.73, accuracy 71% (vs 62% for always guessing "no injury"). The page shows the model's coefficients as odds ratios and its test metrics.
+- **Question C**: weather × traffic results from `visualization/question_c.py` (city-hour Poisson model) and `visualization/question_c_part2.py` (traffic before/after collisions on the same road).
+- Associations only; counts are not interpreted as causal effects.
 
-## Prediction Lab handoff
+## How the pieces fit
 
-The current Prediction Lab is not a trained model. It uses smoothed historical injury rates and labels all outputs as non-causal benchmarks. When the modeling pipeline is ready, replace the baseline calculation in `renderPrediction()` with the exported probability function and populate the evaluation cards with holdout ROC AUC, recall, F1, and calibration results. The Historical Explorer can remain unchanged.
+All data work is done in Python; the web page only displays the results.
+
+| Step | File |
+| --- | --- |
+| Clean collisions + join weather | `cleaned_data/build_all_collisions_weather.py` |
+| Question C analysis | `visualization/question_c.py`, `visualization/question_c_part2.py` |
+| Build dashboard data, train and evaluate the injury model | `web/scripts/prepare_dashboard_data.py` |
+| Display | `web/index.html`, `web/app.js`, `web/dashboard.css` |
 
 ## Run locally
 
@@ -28,19 +35,13 @@ The map loads Esri street and imagery tiles over the internet. The collision dat
 
 ## Refresh the data
 
-The preparation script reads the course-project collision CSV and creates a browser-ready JSON file:
+From the repository root (after running the Question C scripts if their outputs changed):
 
 ```bash
-python3 scripts/prepare_dashboard_data.py
+python web/scripts/prepare_dashboard_data.py
 ```
 
-## Planned analytical layer
-
-- Join SDOT traffic study metadata and hourly traffic counts.
-- Add Seattle street-segment road characteristics.
-- Join hourly historical weather observations.
-- Calculate traffic-adjusted collision measures.
-- Integrate collision-probability and injury-severity model outputs after validation.
+This rewrites `web/data/collisions.json` and `web/data/collisions-data.js`.
 
 ## Role
 

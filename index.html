@@ -9,7 +9,7 @@
     />
     <title>Seattle Collision Explorer</title>
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="dashboard.css?v=18" />
+    <link rel="stylesheet" href="dashboard.css?v=22" />
   </head>
   <body class="historical-mode">
     <header class="topbar">
@@ -29,10 +29,13 @@
     <main id="top">
       <nav class="view-tabs" aria-label="Dashboard views">
         <button class="view-tab active" type="button" data-view="historical" aria-selected="true">
-          <span>01</span> Historical Explorer
+          <span>01</span> <b class="tab-label"><em class="tab-extra">Historical </em>Explorer</b>
         </button>
         <button class="view-tab" type="button" data-view="prediction" aria-selected="false">
-          <span>02</span> Prediction Lab <i>Prototype</i>
+          <span>02</span> Prediction Lab <i>Logistic model</i>
+        </button>
+        <button class="view-tab" type="button" data-view="questionc" aria-selected="false">
+          <span>03</span> Question C <i>Weather &amp; traffic</i>
         </button>
       </nav>
 
@@ -133,7 +136,8 @@
                 <summary>Method</summary>
                 <div class="method-popover">
                   <h3>Method & interpretation</h3>
-                  <p><strong>Current scope.</strong> This version explores reported SDOT collision records. Traffic exposure, street characteristics, and weather joins are the next analytical layer.</p>
+                  <p><strong>Data.</strong> Cleaned SDOT collision records (30 rows from a different extract removed, swapped coordinates fixed), joined in Python to Open-Meteo hourly weather. Traffic counts are used in the Question C tab.</p>
+                  <p><strong>Missing time.</strong> Reports with no recorded time are stored as 00:00. They are kept in counts and the map but left out of the hourly chart, so they do not create a false midnight peak.</p>
                   <p><strong>Missingness.</strong> Weather, road, and lighting fields are unavailable for some records and are preserved as “Unknown” rather than silently removed.</p>
                   <p><strong>Interpretation.</strong> Collision counts do not measure underlying risk without exposure denominators. Observed relationships should not be interpreted as causal effects.</p>
                 </div>
@@ -210,7 +214,7 @@
               <p class="section-kicker">TIME OF DAY</p>
               <h2>Hourly pattern</h2>
             </div>
-            <span class="panel-note">Local hour</span>
+            <span class="panel-note" id="hour-note">Local hour</span>
           </div>
           <div id="hour-chart" class="chart" role="img" aria-label="Hourly collision distribution chart"></div>
         </article>
@@ -219,13 +223,13 @@
 
       </section>
 
-      <section id="prediction-view" class="dashboard-view" aria-label="Collision prediction prototype" hidden>
+      <section id="prediction-view" class="dashboard-view" aria-label="Injury prediction model" hidden>
         <div class="model-status-bar">
           <div>
-            <p class="section-kicker">PREDICTION LAB · BASELINE V0.1</p>
+            <p class="section-kicker">PREDICTION LAB · LOGISTIC REGRESSION</p>
             <h2>Estimate injury involvement for a collision context</h2>
           </div>
-          <span class="model-state"><i></i> Historical benchmark · not a trained model</span>
+          <span class="model-state model-ready"><i></i> Trained in Python · tested on a later period</span>
         </div>
 
         <div class="prediction-grid">
@@ -233,52 +237,45 @@
             <div class="panel-header">
               <div>
                 <p class="section-kicker">SCENARIO INPUTS</p>
-                <h2>Define the operating context</h2>
+                <h2>Define the collision context</h2>
               </div>
             </div>
             <div class="scenario-controls">
-              <label>Time period
-                <select id="predict-time">
-                  <option value="all">Any time</option>
-                  <option value="Late night">Late night · 00–05</option>
-                  <option value="Morning">Morning · 06–11</option>
-                  <option value="Afternoon">Afternoon · 12–17</option>
-                  <option value="Evening">Evening · 18–23</option>
-                </select>
-              </label>
+              <label>Time period<select id="predict-time"><option value="all">Any time</option></select></label>
               <label>Weather<select id="predict-weather"><option value="all">Any weather</option></select></label>
               <label>Road condition<select id="predict-road"><option value="all">Any road condition</option></select></label>
               <label>Collision type<select id="predict-type"><option value="all">Any collision type</option></select></label>
+              <label>Light condition<select id="predict-light"><option value="all">Any light condition</option></select></label>
             </div>
-            <p class="model-caveat">This prototype summarizes smoothed historical injury rates for similar records. It is not a forecast, causal estimate, or safety decision tool.</p>
+            <p class="model-caveat">Probability from a logistic regression trained on cleaned SDOT records (web/scripts/prepare_dashboard_data.py). “Any” uses the average effect of that input. Associations only, not causal effects.</p>
           </article>
 
           <article class="panel risk-panel">
             <div class="panel-header">
               <div>
-                <p class="section-kicker">BASELINE OUTPUT</p>
-                <h2>Injury involvement estimate</h2>
+                <p class="section-kicker">MODEL OUTPUT</p>
+                <h2>Probability of injury</h2>
               </div>
               <span id="risk-band" class="risk-band">Baseline</span>
             </div>
             <div class="risk-gauge-wrap">
               <div id="risk-gauge" class="risk-gauge" style="--risk-angle:0deg">
-                <div><strong id="risk-value">—</strong><span>historical benchmark</span></div>
+                <div><strong id="risk-value">—</strong><span>model probability</span></div>
               </div>
             </div>
             <div class="risk-meta">
-              <span>Overall historical rate <strong id="base-risk">—</strong></span>
-              <span>Closest-group support <strong id="support-count">—</strong></span>
+              <span>Overall injury rate <strong id="base-risk">—</strong></span>
+              <span>Test-period AUC <strong id="support-count">—</strong></span>
             </div>
           </article>
 
           <article class="panel drivers-panel">
             <div class="panel-header">
               <div>
-                <p class="section-kicker">CONTEXT SIGNALS</p>
-                <h2>Selected-factor comparison</h2>
+                <p class="section-kicker">EXPLANATION</p>
+                <h2>How each input moves the estimate</h2>
               </div>
-              <span class="panel-note">Univariate · non-causal</span>
+              <span class="panel-note">Odds vs. average</span>
             </div>
             <div id="driver-table" class="driver-table"></div>
           </article>
@@ -286,35 +283,91 @@
           <article class="panel signal-panel">
             <div class="panel-header">
               <div>
-                <p class="section-kicker">FEATURE SCREENING</p>
-                <h2>Historical signal strength</h2>
+                <p class="section-kicker">MODEL COEFFICIENTS</p>
+                <h2>Strongest effects in the model</h2>
               </div>
-              <span class="panel-note">Normalized screening index</span>
+              <span class="panel-note">Odds ratio vs. average</span>
             </div>
             <div id="signal-chart" class="signal-chart"></div>
-            <p class="signal-note">These values rank univariate separation only. They are not trained feature weights or causal effects.</p>
+            <p class="signal-note">Bar length shows how much each category changes the odds of injury compared with an average collision, holding the other inputs fixed.</p>
           </article>
 
           <article class="panel evaluation-panel">
             <div class="panel-header">
               <div>
                 <p class="section-kicker">MODEL VALIDATION</p>
-                <h2>Evaluation gate</h2>
+                <h2>Test-period results</h2>
               </div>
-              <span class="pending-pill">Awaiting trained model</span>
+              <span class="pending-pill done-pill" id="eval-period">—</span>
             </div>
             <div class="metric-placeholder-grid">
-              <div><span>ROC AUC</span><strong>Pending</strong><small>Discrimination</small></div>
-              <div><span>Recall</span><strong>Pending</strong><small>Safety-sensitive class</small></div>
-              <div><span>F1 score</span><strong>Pending</strong><small>Precision–recall balance</small></div>
-              <div><span>Calibration</span><strong>Pending</strong><small>Probability reliability</small></div>
+              <div><span>ROC AUC</span><strong id="metric-auc">—</strong><small>0.5 = guessing, 1 = perfect</small></div>
+              <div><span>Accuracy</span><strong id="metric-accuracy">—</strong><small id="metric-baseline">—</small></div>
+              <div><span>Recall / F1</span><strong id="metric-recall">—</strong><small>Injury class, threshold 0.5</small></div>
+              <div><span>Calibration</span><strong id="metric-calibration">—</strong><small>Mean predicted vs. observed</small></div>
             </div>
             <div class="model-roadmap">
               <span class="done">Historical baseline</span>
-              <span>Logistic regression</span>
-              <span>Tree-based model</span>
-              <span>Holdout comparison</span>
+              <span class="done">Logistic regression</span>
+              <span class="done">Time-based holdout</span>
+              <span>Tree-based model (see Model Making/)</span>
             </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="questionc-view" class="dashboard-view" aria-label="Question C weather and traffic" hidden>
+        <div class="model-status-bar">
+          <div>
+            <p class="section-kicker">QUESTION C</p>
+            <h2>How do weather and traffic relate to collisions?</h2>
+          </div>
+          <span class="model-state model-ready"><i></i> Computed in Python · visualization/question_c*.py</span>
+        </div>
+
+        <div class="prediction-grid">
+          <article class="panel qc-chart-panel">
+            <div class="panel-header">
+              <div>
+                <p class="section-kicker">PART 1 · CITY-HOURS</p>
+                <h2>Collisions per hour by rain and traffic level</h2>
+              </div>
+              <span class="panel-note">Poisson model, 95% CI</span>
+            </div>
+            <div id="qc-part1-chart" class="chart qc-chart" role="img" aria-label="Collisions per hour by rain and traffic level"></div>
+          </article>
+
+          <article class="panel qc-side-panel">
+            <div class="panel-header">
+              <div>
+                <p class="section-kicker">PART 1 · RESULT</p>
+                <h2>What the model says</h2>
+              </div>
+            </div>
+            <div id="qc-part1-stats" class="metric-placeholder-grid qc-stats"></div>
+            <p class="model-caveat"><span id="qc-hours">—</span> hours with at least 3 SDOT traffic studies (Oct 2023 – Jun 2026, Feb 2026 left out). Controls for hour, weekday, month, year and number of traffic studies. Reports with no recorded time are excluded.</p>
+          </article>
+
+          <article class="panel qc-chart-panel">
+            <div class="panel-header">
+              <div>
+                <p class="section-kicker">PART 2 · SAME ROAD</p>
+                <h2>Traffic before and after a collision</h2>
+              </div>
+              <span class="panel-note">Traffic ÷ normal for that road and hour</span>
+            </div>
+            <div id="qc-part2-chart" class="chart qc-chart" role="img" aria-label="Traffic before and after a collision"></div>
+          </article>
+
+          <article class="panel qc-side-panel">
+            <div class="panel-header">
+              <div>
+                <p class="section-kicker">PART 2 · RESULT</p>
+                <h2>What happens to traffic</h2>
+              </div>
+            </div>
+            <div id="qc-part2-stats" class="metric-placeholder-grid qc-stats"></div>
+            <p class="model-caveat">Collisions on a road segment with an SDOT count running that day. “Normal” is the median count for the same study, clock hour and day type on other days.</p>
           </article>
         </div>
       </section>
@@ -327,6 +380,6 @@
 
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="data/collisions-data.js"></script>
-    <script src="app.js?v=17"></script>
+    <script src="app.js?v=20"></script>
   </body>
 </html>
