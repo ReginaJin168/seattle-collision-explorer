@@ -9,7 +9,7 @@
     />
     <title>Seattle Collision Explorer</title>
     <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
-    <link rel="stylesheet" href="dashboard.css?v=22" />
+    <link rel="stylesheet" href="dashboard.css?v=23" />
   </head>
   <body class="historical-mode">
     <header class="topbar">
@@ -33,9 +33,6 @@
         </button>
         <button class="view-tab" type="button" data-view="prediction" aria-selected="false">
           <span>02</span> Prediction Lab <i>Logistic model</i>
-        </button>
-        <button class="view-tab" type="button" data-view="questionc" aria-selected="false">
-          <span>03</span> Question C <i>Weather &amp; traffic</i>
         </button>
       </nav>
 
@@ -136,7 +133,7 @@
                 <summary>Method</summary>
                 <div class="method-popover">
                   <h3>Method & interpretation</h3>
-                  <p><strong>Data.</strong> Cleaned SDOT collision records (30 rows from a different extract removed, swapped coordinates fixed), joined in Python to Open-Meteo hourly weather. Traffic counts are used in the Question C tab.</p>
+                  <p><strong>Data.</strong> Cleaned SDOT collision records (30 rows from a different extract removed, swapped coordinates fixed), joined in Python to Open-Meteo hourly weather.</p>
                   <p><strong>Missing time.</strong> Reports with no recorded time are stored as 00:00. They are kept in counts and the map but left out of the hourly chart, so they do not create a false midnight peak.</p>
                   <p><strong>Missingness.</strong> Weather, road, and lighting fields are unavailable for some records and are preserved as “Unknown” rather than silently removed.</p>
                   <p><strong>Interpretation.</strong> Collision counts do not measure underlying risk without exposure denominators. Observed relationships should not be interpreted as causal effects.</p>
@@ -316,61 +313,6 @@
         </div>
       </section>
 
-      <section id="questionc-view" class="dashboard-view" aria-label="Question C weather and traffic" hidden>
-        <div class="model-status-bar">
-          <div>
-            <p class="section-kicker">QUESTION C</p>
-            <h2>How do weather and traffic relate to collisions?</h2>
-          </div>
-          <span class="model-state model-ready"><i></i> Computed in Python · visualization/question_c*.py</span>
-        </div>
-
-        <div class="prediction-grid">
-          <article class="panel qc-chart-panel">
-            <div class="panel-header">
-              <div>
-                <p class="section-kicker">PART 1 · CITY-HOURS</p>
-                <h2>Collisions per hour by rain and traffic level</h2>
-              </div>
-              <span class="panel-note">Poisson model, 95% CI</span>
-            </div>
-            <div id="qc-part1-chart" class="chart qc-chart" role="img" aria-label="Collisions per hour by rain and traffic level"></div>
-          </article>
-
-          <article class="panel qc-side-panel">
-            <div class="panel-header">
-              <div>
-                <p class="section-kicker">PART 1 · RESULT</p>
-                <h2>What the model says</h2>
-              </div>
-            </div>
-            <div id="qc-part1-stats" class="metric-placeholder-grid qc-stats"></div>
-            <p class="model-caveat"><span id="qc-hours">—</span> hours with at least 3 SDOT traffic studies (Oct 2023 – Jun 2026, Feb 2026 left out). Controls for hour, weekday, month, year and number of traffic studies. Reports with no recorded time are excluded.</p>
-          </article>
-
-          <article class="panel qc-chart-panel">
-            <div class="panel-header">
-              <div>
-                <p class="section-kicker">PART 2 · SAME ROAD</p>
-                <h2>Traffic before and after a collision</h2>
-              </div>
-              <span class="panel-note">Traffic ÷ normal for that road and hour</span>
-            </div>
-            <div id="qc-part2-chart" class="chart qc-chart" role="img" aria-label="Traffic before and after a collision"></div>
-          </article>
-
-          <article class="panel qc-side-panel">
-            <div class="panel-header">
-              <div>
-                <p class="section-kicker">PART 2 · RESULT</p>
-                <h2>What happens to traffic</h2>
-              </div>
-            </div>
-            <div id="qc-part2-stats" class="metric-placeholder-grid qc-stats"></div>
-            <p class="model-caveat">Collisions on a road segment with an SDOT count running that day. “Normal” is the median count for the same study, clock hour and day type on other days.</p>
-          </article>
-        </div>
-      </section>
     </main>
 
     <footer>
@@ -380,6 +322,6 @@
 
     <script src="vendor/leaflet/leaflet.js"></script>
     <script src="data/collisions-data.js"></script>
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=21"></script>
   </body>
 </html>

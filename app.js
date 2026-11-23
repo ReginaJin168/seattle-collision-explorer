@@ -32,7 +32,6 @@ const predictionControls = {
 };
 
 const model = { data: null };
-const questionC = { data: null };
 
 const number = new Intl.NumberFormat("en-US");
 const percent = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
@@ -79,7 +78,6 @@ function initViewTabs() {
         view.classList.toggle("active", active);
         view.hidden = !active;
       });
-      if (selectedView === "questionc") requestAnimationFrame(renderQuestionC);
       if (selectedView === "historical" && state.map) {
         requestAnimationFrame(() => {
           state.map.invalidateSize({ pan: false });
@@ -527,116 +525,6 @@ function initPredictionLab() {
   renderPrediction();
 }
 
-// ---------------------------------------------------------------------------
-// Question C: results exported from visualization/question_c.py and question_c_part2.py
-// ---------------------------------------------------------------------------
-function statCard(label, value, note) {
-  return `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div>`;
-}
-
-function pText(p) {
-  return p < 0.001 ? "p < 0.001" : `p = ${p.toFixed(p < 0.01 ? 3 : 2)}`;
-}
-
-// Same rule as the laptop block in dashboard.css: shorter charts so the tab fits on one screen.
-const laptopScreen = window.matchMedia("(min-width: 1280px) and (min-height: 640px) and (max-height: 899px)");
-
-function chartSize(container) {
-  const width = Math.max(320, Math.round(container.getBoundingClientRect().width));
-  const height = laptopScreen.matches ? Math.max(180, window.innerHeight - 470) : 300;
-  return { width, height };
-}
-
-function renderQuestionCPart1() {
-  const rows = questionC.data.part1;
-  const container = document.querySelector("#qc-part1-chart");
-  const { width, height } = chartSize(container);
-  const margin = { top: 22, right: 12, bottom: 48, left: 44 };
-  const innerW = width - margin.left - margin.right;
-  const innerH = height - margin.top - margin.bottom;
-  const bands = ["Lower", "Middle", "Higher"];
-  const colors = { Dry: "#9fd5c9", Wet: "#ffc670" };
-  const maxY = Math.max(...rows.map((r) => r.ci_high)) * 1.15;
-  const y = (v) => margin.top + innerH - (v / maxY) * innerH;
-  const groupW = innerW / bands.length;
-  const barW = Math.min(46, groupW * 0.3);
-
-  let svg = [0, 0.2, 0.4, 0.6, 0.8].filter((v) => v <= maxY).map((v) =>
-    `<line class="grid-line" x1="${margin.left}" x2="${width - margin.right}" y1="${y(v)}" y2="${y(v)}" /><text x="${margin.left - 8}" y="${y(v) + 3}" text-anchor="end">${v.toFixed(1)}</text>`).join("");
-  bands.forEach((band, i) => {
-    const center = margin.left + groupW * (i + 0.5);
-    ["Dry", "Wet"].forEach((weather, j) => {
-      const r = rows.find((row) => row.traffic_band === band && row.weather === weather);
-      const x = center + (j === 0 ? -barW - 3 : 3);
-      svg += `<rect x="${x}" y="${y(r.adjusted_collisions_per_hour)}" width="${barW}" height="${y(0) - y(r.adjusted_collisions_per_hour)}" rx="3" fill="${colors[weather]}"><title>${weather}, ${band} traffic: ${r.adjusted_collisions_per_hour.toFixed(2)} per hour (${number.format(r.observed_hours)} hours)</title></rect>`;
-      svg += `<line x1="${x + barW / 2}" x2="${x + barW / 2}" y1="${y(r.ci_low)}" y2="${y(r.ci_high)}" stroke="#fbfdfb" stroke-width="1.2" />`;
-      svg += `<text class="value-label" x="${x + barW / 2}" y="${y(r.ci_high) - 5}" text-anchor="middle">${r.adjusted_collisions_per_hour.toFixed(2)}</text>`;
-    });
-    svg += `<text x="${center}" y="${height - 28}" text-anchor="middle">${band} traffic</text>`;
-  });
-  svg += `<text x="${margin.left}" y="12">Collisions per hour (citywide)</text>`;
-  container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="height:${height}px">${svg}</svg>
-    <div class="qc-legend"><span><i style="background:${colors.Dry}"></i>Dry hour</span><span><i style="background:${colors.Wet}"></i>Rain in the hour</span></div>`;
-
-  const glm = questionC.data.glm;
-  document.querySelector("#qc-hours").textContent = number.format(questionC.data.hours);
-  const traffic10 = (Math.exp(glm.traffic_centered.coef * 0.1) - 1) * 100;
-  const wetHours = rows.filter((r) => r.weather === "Wet").reduce((sum, r) => sum + r.observed_hours, 0);
-  document.querySelector("#qc-part1-stats").innerHTML = [
-    statCard("Rain", `+${glm.wet.pctChange.toFixed(0)}%`, `more collisions per hour · ${pText(glm.wet.p)}`),
-    statCard("Traffic +10%", `+${traffic10.toFixed(1)}%`, `collisions · ${pText(glm.traffic_centered.p)}`),
-    statCard("Rain × traffic", "No evidence", `rain is not worse in heavy traffic · ${pText(glm["wet:traffic_centered"].p)}`),
-    statCard("Wet hours", number.format(wetHours), "hours with rain in the sample"),
-  ].join("");
-}
-
-function renderQuestionCPart2() {
-  const rows = questionC.data.part2;
-  const container = document.querySelector("#qc-part2-chart");
-  const { width, height } = chartSize(container);
-  const margin = { top: 22, right: 16, bottom: 48, left: 44 };
-  const innerW = width - margin.left - margin.right;
-  const innerH = height - margin.top - margin.bottom;
-  const hours = rows.map((r) => r.hours_from_collision);
-  const minY = Math.min(...rows.map((r) => Math.min(r.event_ci_low, r.ordinary_p25))) - 0.02;
-  const maxY = Math.max(...rows.map((r) => Math.max(r.event_ci_high, r.ordinary_p75))) + 0.02;
-  const x = (h) => margin.left + ((h - hours[0]) / (hours[hours.length - 1] - hours[0])) * innerW;
-  const y = (v) => margin.top + innerH - ((v - minY) / (maxY - minY)) * innerH;
-  const area = (low, high) => rows.map((r) => `${x(r.hours_from_collision)},${y(r[high])}`).join(" ") + " " +
-    [...rows].reverse().map((r) => `${x(r.hours_from_collision)},${y(r[low])}`).join(" ");
-
-  let svg = [0.9, 1.0, 1.1].filter((v) => v > minY && v < maxY).map((v) =>
-    `<line class="grid-line" x1="${margin.left}" x2="${width - margin.right}" y1="${y(v)}" y2="${y(v)}" /><text x="${margin.left - 8}" y="${y(v) + 3}" text-anchor="end">${v.toFixed(1)}</text>`).join("");
-  svg += `<polygon points="${area("ordinary_p25", "ordinary_p75")}" fill="rgba(210,232,228,.12)" />`;
-  svg += `<polygon points="${area("event_ci_low", "event_ci_high")}" fill="rgba(255,198,112,.22)" />`;
-  svg += `<line x1="${margin.left}" x2="${width - margin.right}" y1="${y(1)}" y2="${y(1)}" stroke="#d5e2df" stroke-dasharray="4 4" />`;
-  svg += `<line x1="${x(0)}" x2="${x(0)}" y1="${margin.top}" y2="${margin.top + innerH}" stroke="#ffb0b3" stroke-dasharray="3 3" />`;
-  svg += `<text x="${x(0) + 4}" y="${margin.top + 10}" fill="#ffb0b3">collision</text>`;
-  svg += `<polyline points="${rows.map((r) => `${x(r.hours_from_collision)},${y(r.event_median_ratio)}`).join(" ")}" fill="none" stroke="#ffc670" stroke-width="2.2" />`;
-  rows.forEach((r) => {
-    svg += `<circle cx="${x(r.hours_from_collision)}" cy="${y(r.event_median_ratio)}" r="3.5" fill="#ffc670"><title>${r.hours_from_collision >= 0 ? "+" : ""}${r.hours_from_collision} h: median ${r.event_median_ratio.toFixed(3)} (${r.events} collisions)</title></circle>`;
-    svg += `<text x="${x(r.hours_from_collision)}" y="${height - 28}" text-anchor="middle">${r.hours_from_collision > 0 ? "+" : ""}${r.hours_from_collision} h</text>`;
-  });
-  svg += `<text x="${margin.left}" y="12">Traffic ÷ normal (1.0 = usual)</text>`;
-  container.innerHTML = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" style="height:${height}px">${svg}</svg>
-    <div class="qc-legend"><span><i style="background:#ffc670"></i>Hours around a collision (median, 95% CI)</span><span><i style="background:rgba(210,232,228,.3)"></i>Ordinary hours (middle 50%)</span></div>`;
-
-  const s = questionC.data.part2Summary;
-  const plus1 = rows.find((r) => r.hours_from_collision === 1);
-  document.querySelector("#qc-part2-stats").innerHTML = [
-    statCard("Collisions studied", number.format(s.events), "with traffic counts before and after"),
-    statCard("1 hour after", `${((plus1.event_median_ratio - 1) * 100).toFixed(1)}%`, "median traffic vs normal"),
-    statCard("Lower after", percent.format(s.shareLowerAfter), "of collisions (ordinary hours: about 50%)"),
-    statCard("Sign test", pText(s.signTestP), "the drop is unlikely to be chance"),
-  ].join("");
-}
-
-function renderQuestionC() {
-  if (!questionC.data || document.querySelector("#questionc-view").hidden) return;
-  renderQuestionCPart1();
-  renderQuestionCPart2();
-}
-
 function resetFilters() {
   Object.values(controls).forEach((select) => { select.value = "all"; });
   clearDetail();
@@ -653,7 +541,6 @@ async function init() {
     }
     state.records = payload.records;
     model.data = payload.injuryModel;
-    questionC.data = payload.questionC;
     state.filtered = payload.records;
 
     document.querySelector("#date-range").textContent = `${payload.meta.dateMin} — ${payload.meta.dateMax} · ${number.format(payload.meta.recordCount)} cleaned records`;
@@ -674,7 +561,6 @@ async function init() {
     });
     chartResizeObserver.observe(document.querySelector("#monthly-chart"));
     chartResizeObserver.observe(document.querySelector("#hour-chart"));
-    window.addEventListener("resize", renderQuestionC);
   } catch (error) {
     console.error(error);
     document.querySelector("#date-range").textContent = "Dashboard unavailable — reload to try again.";
