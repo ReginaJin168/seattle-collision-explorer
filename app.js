@@ -543,7 +543,6 @@ async function init() {
     model.data = payload.injuryModel;
     state.filtered = payload.records;
 
-    document.querySelector("#date-range").textContent = `${payload.meta.dateMin} — ${payload.meta.dateMax} · ${number.format(payload.meta.recordCount)} cleaned records`;
     populateSelect(controls.year, uniqueValues("year"));
     populateSelect(controls.severity, uniqueValues("severity"));
     populateSelect(controls.weather, uniqueValues("weather"));
@@ -563,7 +562,7 @@ async function init() {
     chartResizeObserver.observe(document.querySelector("#hour-chart"));
   } catch (error) {
     console.error(error);
-    document.querySelector("#date-range").textContent = "Dashboard unavailable — reload to try again.";
+    document.querySelector(".brand-copy strong").textContent = "Dashboard unavailable — reload to try again";
   }
 }
 
